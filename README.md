@@ -241,7 +241,7 @@ hwclock --systohc
 locale-gen
 echo "LANG=ru_RU.UTF-8" > /etc/locale.conf
 echo "skadi-arch" > /etc/hostname
-echo "127.0.0.1 skadi-arch.localdomain skadi-arch" >> /etc/hosts
+echo "127.0.1.1 skadi-arch.localdomain skadi-arch" >> /etc/hosts
 
 # Задание пароля root и создание пользователя
 passwd
