@@ -2,7 +2,7 @@
 
 ## Быстрый запуск через git
 
-Подходит, если Arch уже установлен (см. раздел «Чистая система» ниже), создан пользователь с `sudo` и работает сеть. Скрипт `install.sh` автоматизирует всё из раздела «Настройка чистой системы».
+Подходит, если Arch уже установлен (см. раздел «Чистая система» выше), создан пользователь с `sudo` и работает сеть. Скрипт `install.sh` автоматизирует всё из раздела «Настройка чистой системы» ниже. Смену ядра на CachyOS он не выполняет: это отдельный необязательный шаг (раздел «Смена ядра на CachyOS» в конце).
 
 1. Установите git:
 
@@ -321,9 +321,27 @@ options root=UUID=<UUID> rootflags=subvol=@ rw
 
 Опция `editor no` важна: иначе в меню загрузчика можно изменить параметры ядра и обойти защиту.
 
-Затем выйдите из chroot и перезагрузитесь (см. ниже). Secure Boot пока выключен.
+Затем завершите установку (см. «Завершение установки» ниже). Secure Boot пока выключен. После первой загрузки продолжите с раздела «Secure Boot: ключи и подпись».
 
-**4. После первой загрузки — ключи и подпись:**
+> GRUB с Secure Boot здесь не рассматривается: ему нужен shim или отдельная сборка с подписью, что заметно сложнее.
+
+### Завершение установки
+
+Выйдите из chroot, отмонтируйте разделы и перезагрузитесь (извлеките установочный носитель):
+
+```bash
+exit
+umount -R /mnt
+reboot
+```
+
+После первой загрузки войдите под созданным пользователем и переходите к разделу «Настройка чистой системы». Если выбрали вариант с Secure Boot, сначала выполните шаги из следующего раздела.
+
+### Secure Boot: ключи и подпись
+
+Нужно только для варианта «UEFI + Secure Boot (systemd-boot + sbctl)», после первой загрузки в установленную систему.
+
+**1. Ключи и подпись:**
 
 ```bash
 sudo sbctl status                 # Setup Mode: Enabled
@@ -341,7 +359,7 @@ sudo systemctl enable systemd-boot-update.service
 
 Флаг `-s` сохраняет файл в базу sbctl, и pacman-хук пакета `sbctl` автоматически переподписывает его после обновлений ядра и загрузчика. Периодически проверяйте `sudo sbctl verify`.
 
-**5. Включите Secure Boot** в прошивке и перезагрузитесь. Проверка:
+**2. Включите Secure Boot** в прошивке и перезагрузитесь. Проверка:
 
 ```bash
 sudo sbctl status                 # Secure Boot: Enabled
@@ -349,24 +367,17 @@ bootctl status
 ```
 
 > Модули NVIDIA (`nvidia-open-dkms`) подписывать не нужно: на Arch по умолчанию ядро не требует подписи модулей.
-> 
-> GRUB с Secure Boot здесь не рассматривается: ему нужен shim или отдельная сборка с подписью, что заметно сложнее.
-
-После этого можно выйти и перезагрузить компьютер.
-
-```bash
-sudo reboot
-```
 
 ## Настройка чистой системы
 
-Все шаги ниже повторяют `install.sh`. Если ставите вручную, выполняйте их по порядку: AUR-пакеты (в том числе курсор для экрана входа) требуют `paru`.
+Все шаги ниже повторяют `install.sh` (кроме смены ядра, она вынесена в отдельный раздел в конце). Если ставите вручную, выполняйте их по порядку: AUR-пакеты (в том числе курсор для экрана входа) требуют `paru`.
 
-### Основные пакеты
+### Подготовка системы
+
+Включите сеть:
 
 ```bash
 sudo systemctl enable --now NetworkManager
-sudo pacman -Syu
 ```
 
 Для игровых пакетов (`lib32-*`, Steam, Wine) в `/etc/pacman.conf` раскомментируйте multilib:
@@ -376,11 +387,18 @@ sudo pacman -Syu
 Include = /etc/pacman.d/mirrorlist
 ```
 
-После этого обновите базы:
+Обновите систему и поставьте инструменты для сборки пакетов:
 
 ```bash
 sudo pacman -Syu
 sudo pacman -S --needed base-devel git
+```
+
+Системные службы:
+
+```bash
+sudo systemctl enable --now systemd-timesyncd # синхронизация времени
+sudo systemctl enable fstrim.timer # Периодический TRIM для SSD
 ```
 
 #### AUR-хелпер paru
@@ -392,7 +410,7 @@ makepkg -si
 cd .. && rm -rf paru-bin
 ```
 
-#### Hyprland и десктопное окружение
+### Hyprland и десктопное окружение
 
 Панель, лаунчер и виджеты даёт Caelestia shell.
 
@@ -405,7 +423,7 @@ sudo pacman -S --needed hyprland uwsm xorg-xwayland xorg-xlsclients \
   fuzzel dart-sass
 ```
 
-Звук:
+#### Звук
 
 ```bash
 sudo pacman -S --needed pipewire wireplumber pipewire-pulse pavucontrol
@@ -418,7 +436,7 @@ sudo pacman -S --needed noto-fonts noto-fonts-emoji ttf-nerd-fonts-symbols \
   ttf-jetbrains-mono-nerd ttf-cascadia-code-nerd
 ```
 
-#### Экран входа: greetd + ReGreet
+### Экран входа: greetd + ReGreet
 
 `cage` — минимальный Wayland-композитор, внутри которого запускается greeter. Тема и иконки ставятся системно, потому что пользователь `greeter` не видит `~/.themes` и `~/.icons`.
 
@@ -478,7 +496,7 @@ sudo ./install.sh --dest /usr/share/themes --tweaks black
 
 После установки впишите имя темы в секцию `[GTK]` файла `/etc/greetd/regreet.toml`.
 
-#### Приложения и утилиты командной строки
+### Приложения и утилиты командной строки
 
 ```bash
 sudo pacman -S --needed firefox foot fish bash neovim \
@@ -487,9 +505,6 @@ sudo pacman -S --needed firefox foot fish bash neovim \
   btop nvtop ncdu inxi fastfetch \
   fd bat eza ripgrep fzf zoxide yazi jq \
   ffmpeg poppler resvg imagemagick
-
-sudo systemctl enable --now systemd-timesyncd # синхронизация времени
-sudo systemctl enable fstrim.timer # Периодический TRIM для SSD
 
 # Смена оболочки
 chsh -s /usr/bin/fish
@@ -601,7 +616,7 @@ paru -S --needed quickshell-git gpu-screen-recorder libcava \
 
 ### Caelestia shell
 
-Оболочка собирается из исходников и кладётся в конфиг Quickshell:
+Оболочка собирается из исходников (нужны `cmake`, `ninja` и `gcc` из раздела «Пакеты для разработки») и кладётся в конфиг Quickshell:
 
 ```bash
 QS_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell"
@@ -623,8 +638,6 @@ sudo chown -R "$USER": "$QS_DIR/caelestia"
 caelestia install
 ```
 
-После этого перезагрузитесь: применятся группы docker/libvirt/kvm, настройки NVIDIA и появится экран входа ReGreet.
-
 ### Дополнительно
 
 Повседневные приложения:
@@ -641,6 +654,162 @@ sudo systemctl enable --now zerotier-one
 ```bash
 paru -S marktext-bin karing-bin teamspeak uxplay modrinth-app-bin
 ```
+
+### Перезагрузка
+
+Перезагрузитесь: применятся группы `docker`/`libvirt`/`kvm`, настройки NVIDIA и появится экран входа ReGreet.
+
+```bash
+sudo reboot
+```
+
+Убедитесь, что система работает на стандартном ядре. После этого при желании можно сменить ядро (следующий раздел).
+
+## Смена ядра на CachyOS (опционально)
+
+Выполняйте после настройки системы и перезагрузки: обычное ядро `linux` останется запасным вариантом, если что-то пойдёт не так. Скрипт `install.sh` этот шаг не делает.
+
+### 1. Подключите репозиторий CachyOS
+
+```bash
+curl https://mirror.cachyos.org/cachyos-repo.tar.xz -o cachyos-repo.tar.xz
+tar xvf cachyos-repo.tar.xz && cd cachyos-repo
+sudo ./cachyos-repo.sh
+```
+
+Скрипт ставит ключи и список зеркал, добавляет репозитории CachyOS в `/etc/pacman.conf` выше репозиториев Arch и сам выбирает набор под ваш процессор (x86-64-v3 или v4). Поддержку можно проверить заранее:
+
+```bash
+/lib/ld-linux-x86-64.so.2 --help | grep supported
+```
+
+Репозитории v3/v4 содержат и оптимизированные сборки обычных пакетов Arch, поэтому при следующем обновлении часть системных пакетов может смениться на сборки CachyOS. Если нужно только ядро, подключайте репозитории вручную по [инструкции в вики CachyOS](https://wiki.cachyos.org/cachyos_repositories/how_to_add_cachyos_repo).
+
+### 2. Выберите и установите ядро
+
+Ядра отличаются планировщиком (BORE или EEVDF) и способом сборки. Для Hyprland, игр и NVIDIA подойдёт `linux-cachyos` или `linux-cachyos-bore`.
+
+| Ядро                     | Назначение                                                                    |
+| ------------------------ | ----------------------------------------------------------------------------- |
+| `linux-cachyos`          | По умолчанию: EEVDF, сборка Clang с Thin LTO и AutoFDO. Универсальный вариант |
+| `linux-cachyos-bore`     | Планировщик BORE, сборка GCC. Интерактивные задачи и игры                     |
+| `linux-cachyos-eevdf`    | EEVDF, сборка GCC. Универсальная работа без Clang                             |
+| `linux-cachyos-lts`      | Долгая поддержка. Стабильность, хорошее запасное ядро                         |
+| `linux-cachyos-server`   | Настройки под серверную нагрузку                                              |
+| `linux-cachyos-hardened` | Патчи безопасности, BORE                                                      |
+| `linux-cachyos-rt-bore`  | Реальное время, BORE. Низкие задержки, аудио                                  |
+| `linux-cachyos-deckify`  | Под Steam Deck и подобные устройства, BORE                                    |
+| `linux-cachyos-rc`       | Релиз-кандидат апстрима. Тестирование, возможны сбои                          |
+| `linux-cachyos-bmq`      | Планировщик BMQ. Эксперименты; sched_ext (`scx-scheds`) с ним не работает     |
+| `linux-cachyos-gcc`      | Вариант `linux-cachyos`, собранный GCC                                        |
+
+Команды для копирования (ядро + заголовки + готовый модуль NVIDIA open):
+
+```bash
+# linux-cachyos (по умолчанию)
+sudo pacman -S linux-cachyos linux-cachyos-headers linux-cachyos-nvidia-open
+
+# linux-cachyos-bore
+sudo pacman -S linux-cachyos-bore linux-cachyos-bore-headers linux-cachyos-bore-nvidia-open
+
+# linux-cachyos-eevdf
+sudo pacman -S linux-cachyos-eevdf linux-cachyos-eevdf-headers linux-cachyos-eevdf-nvidia-open
+
+# linux-cachyos-lts
+sudo pacman -S linux-cachyos-lts linux-cachyos-lts-headers linux-cachyos-lts-nvidia-open
+
+# linux-cachyos-server
+sudo pacman -S linux-cachyos-server linux-cachyos-server-headers linux-cachyos-server-nvidia-open
+
+# linux-cachyos-hardened
+sudo pacman -S linux-cachyos-hardened linux-cachyos-hardened-headers linux-cachyos-hardened-nvidia-open
+
+# linux-cachyos-rt-bore
+sudo pacman -S linux-cachyos-rt-bore linux-cachyos-rt-bore-headers linux-cachyos-rt-bore-nvidia-open
+
+# linux-cachyos-deckify
+sudo pacman -S linux-cachyos-deckify linux-cachyos-deckify-headers linux-cachyos-deckify-nvidia-open
+
+# linux-cachyos-rc
+sudo pacman -S linux-cachyos-rc linux-cachyos-rc-headers linux-cachyos-rc-nvidia-open
+
+# linux-cachyos-bmq
+sudo pacman -S linux-cachyos-bmq linux-cachyos-bmq-headers linux-cachyos-bmq-nvidia-open
+
+# linux-cachyos-gcc
+sudo pacman -S linux-cachyos-gcc linux-cachyos-gcc-headers linux-cachyos-gcc-nvidia-open
+```
+
+Другие модули (подставьте имя своего ядра вместо `linux-cachyos`):
+
+```bash
+# NVIDIA, закрытые модули
+sudo pacman -S linux-cachyos-nvidia
+
+# ZFS
+sudo pacman -S linux-cachyos-zfs
+```
+
+
+
+### 3. Добавьте ядро в загрузчик
+
+**GRUB:**
+
+```bash
+sudo grub-mkconfig -o /boot/grub/grub.cfg
+```
+
+**systemd-boot** (запись создаётся вручную, как и для обычного ядра). `/boot/loader/entries/cachyos.conf` (замените `amd-ucode` на `intel-ucode` при необходимости):
+
+```
+title   Arch Linux (CachyOS)
+linux   /vmlinuz-linux-cachyos
+initrd  /amd-ucode.img
+initrd  /initramfs-linux-cachyos.img
+options root=UUID=<UUID> rw
+```
+
+Для **btrfs** добавьте в `options` подтом: `rootflags=subvol=@`. Параметр `default` в `loader.conf` пока оставьте на `arch.conf`, а новое ядро выбирайте в меню загрузчика. Проверка: `bootctl list`.
+
+**Secure Boot (sbctl):** подпишите новое ядро, иначе оно не загрузится:
+
+```bash
+sudo sbctl sign -s /boot/vmlinuz-linux-cachyos
+sudo sbctl verify
+```
+
+Pacman-хук `sbctl` будет переподписывать его после обновлений.
+
+### 4. Перезагрузитесь и проверьте
+
+Выберите новое ядро в меню загрузчика, затем:
+
+```bash
+uname -r        # в выводе должно быть cachyos
+dkms status     # модули собраны под новое ядро
+nvidia-smi      # для NVIDIA
+```
+
+### 5. Удалите старое ядро (по желанию)
+
+Только после того, как убедились, что всё работает на новом ядре:
+
+```bash
+sudo pacman -Rns linux linux-headers
+```
+
+- GRUB: повторите `sudo grub-mkconfig -o /boot/grub/grub.cfg`.
+- systemd-boot: в `loader.conf` поставьте `default cachyos.conf` и удалите `/boot/loader/entries/arch.conf`.
+- Secure Boot: уберите старый файл из базы подписей: `sudo sbctl remove-file /boot/vmlinuz-linux`.
+
+### Откат репозитория
+
+```bash
+sudo ./cachyos-repo.sh --remove
+```
+
+Скрипт вернёт прежний `pacman.conf`, удалит список зеркал и ключи CachyOS. Запускайте его из распакованного каталога `cachyos-repo`.
 
 ## Репозитории используемых проектов
 
