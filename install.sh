@@ -105,7 +105,7 @@ sudo systemctl enable greetd.service
 # 5. Приложения и CLI-утилиты
 # ─────────────────────────────────────────────
 $PAC firefox foot fish bash neovim \
-  thunar thunar-volman thunar-archive-plugin gvfs tumbler xarchiver 7zip \
+  thunar thunar-volman thunar-archive-plugin gvfs tumbler xarchiver 7zip unzip \
   btop nvtop ncdu inxi fastfetch \
   fd bat eza ripgrep fzf zoxide yazi jq \
   ffmpeg poppler resvg imagemagick \
