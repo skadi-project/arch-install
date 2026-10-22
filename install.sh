@@ -105,7 +105,7 @@ sudo systemctl enable greetd.service
 # 5. Приложения и CLI-утилиты
 # ─────────────────────────────────────────────
 $PAC firefox foot fish bash neovim \
-  thunar thunar-volman thunar-archive-plugin gvfs gvfs-backends tumbler xarchiver 7zip \
+  thunar thunar-volman thunar-archive-plugin gvfs tumbler xarchiver 7zip \
   btop nvtop ncdu inxi fastfetch \
   fd bat eza ripgrep fzf zoxide yazi jq \
   ffmpeg poppler resvg imagemagick \
@@ -185,23 +185,10 @@ paru -S --needed --noconfirm \
 # ─────────────────────────────────────────────
 # 11. Caelestia shell
 # ─────────────────────────────────────────────
-# XDG_CONFIG_HOME может быть не задан (а с set -u это ошибка) — берём запасной путь
-QS_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell"
-mkdir -p "$QS_DIR"
 
-if [[ ! -d "$QS_DIR/caelestia/.git" ]]; then
-  git clone https://github.com/caelestia-dots/shell.git "$QS_DIR/caelestia"
-fi
-
-(
-  cd "$QS_DIR/caelestia"
-  cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_INSTALL_PREFIX=/ \
-    -DINSTALL_QSCONFDIR="$QS_DIR/caelestia"
-  cmake --build build
-  sudo cmake --install build
-  sudo chown -R "$USER": "$QS_DIR/caelestia"
-)   
+echo
+echo "Установка caelestia-dots и caelestia-shell"
+caelestia install
 
 sudo systemctl enable --now zerotier-one
 sudo systemctl enable --now systemd-timesyncd
