@@ -23,10 +23,12 @@ $PAC base-devel git
 # ─────────────────────────────────────────────
 # 2. AUR-хелпер paru
 # ─────────────────────────────────────────────
-if ! command -v paru >/dev/null 2>&1; then
+if ! paru --version >/dev/null 2>&1; then
+  $PAC rustup
+  rustup default stable
   tmp=$(mktemp -d)
-  git clone https://aur.archlinux.org/paru-bin.git "$tmp/paru-bin"
-  (cd "$tmp/paru-bin" && makepkg -si --noconfirm)
+  git clone https://aur.archlinux.org/paru.git "$tmp/paru"
+  (cd "$tmp/paru" && makepkg -si --noconfirm)
   rm -rf "$tmp"
 fi
 
