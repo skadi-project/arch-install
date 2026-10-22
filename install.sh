@@ -53,9 +53,9 @@ $PAC noto-fonts noto-fonts-emoji ttf-nerd-fonts-symbols \
 # greetd         — демон входа
 # greetd-regreet — GTK4-greeter
 # cage           — минимальный Wayland-композитор, в котором greeter запускается
-# adw-gtk-theme, papirus-icon-theme — GTK-тема и иконки (ставятся системно,
-#                  пользователь greeter не видит ~/.themes и ~/.icons)
-$PAC greetd greetd-regreet cage gtk4 adw-gtk-theme papirus-icon-theme
+# adw-gtk-theme, papirus-icon-theme
+# nwg-look - для смены gtk тем
+$PAC greetd greetd-regreet cage gtk4 adw-gtk-theme papirus-icon-theme nwg-look
 
 # Курсор (Bibata) — может быть в AUR, paru разберётся
 paru -S --needed --noconfirm bibata-cursor-theme
