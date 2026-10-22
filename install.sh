@@ -181,6 +181,10 @@ paru -S --needed --noconfirm \
   virtio-win libguestfs guestfs-tools virt-top \
   caelestia-cli \
   marktext-bin karing-bin teamspeak uxplay modrinth-app-bin
+  
+# Зависимости для karing-bin
+
+$PAC libayatana-indicator
 
 # ─────────────────────────────────────────────
 # 11. Caelestia shell
