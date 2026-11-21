@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Скрипт установки пакетов для Arch Linux (Hyprland + dev + gaming + виртуализация)
+# Скрипт установки пакетов для Arch Linux + Caelestia shell
 set -euo pipefail
 
 if [[ $EUID -eq 0 ]]; then
@@ -7,7 +7,89 @@ if [[ $EUID -eq 0 ]]; then
   exit 1
 fi
 
-PAC="sudo pacman -S --needed --noconfirm"
+show_help() {
+  cat <<'EOF'
+Использование: ./install_*.sh [параметры]
+
+Параметры:
+  --help                 показать эту справку
+  --dry-run              показать часть команд; режим не является безопасным предпросмотром
+  --gpu MODE             auto, ask, amd, intel, nvidia, all или skip
+
+Переменные окружения:
+  GPU_MODE=auto|ask|amd|intel|nvidia|all|skip
+  DRY_RUN=1
+  LOG_FILE=/path/to/install.log
+  KERNEL_HEADERS=linux-headers
+EOF
+}
+
+DRY_RUN=${DRY_RUN:-0}
+GPU_MODE=${GPU_MODE:-auto}
+LOG_FILE=${LOG_FILE:-"$HOME/arch-install-$(date +%Y%m%d-%H%M%S).log"}
+
+while (($#)); do
+  case "$1" in
+    --help) show_help; exit 0 ;;
+    --dry-run) DRY_RUN=1 ;;
+    --gpu) shift; GPU_MODE=${1:?--gpu requires a mode} ;;
+    *) echo "Неизвестный параметр: $1" >&2; show_help >&2; exit 2 ;;
+  esac
+  shift
+done
+
+command -v sudo >/dev/null || { echo 'Нужен sudo.' >&2; exit 1; }
+sudo -v
+if [[ $DRY_RUN != 1 ]]; then
+  exec > >(tee -a "$LOG_FILE") 2>&1
+  trap 'status=$?; if ((status != 0)); then echo "Ошибка в строке $LINENO. Лог: $LOG_FILE" >&2; fi' EXIT
+else
+  echo "DRY_RUN=1: команды установки будут показаны, но не выполнены."
+fi
+
+run() {
+  if [[ $DRY_RUN == 1 ]]; then printf '+'; printf ' %q' "$@"; printf '\n'; return 0; fi
+  "$@"
+}
+
+backup_file() {
+  local file=$1
+  if [[ -e $file && $DRY_RUN != 1 ]]; then
+    local backup="${file}.backup.$(date +%Y%m%d-%H%M%S)"
+    sudo cp -a "$file" "$backup"
+    echo "Резервная копия: $backup"
+  fi
+}
+
+select_kernel_headers() {
+  local kernel=${KERNEL_HEADERS:-}
+  if [[ -n $kernel ]]; then echo "$kernel"; return; fi
+  case "$(uname -r)" in
+    *-lts*) echo linux-lts-headers ;;
+    *cachyos*) echo linux-cachyos-headers ;;
+    *) echo linux-headers ;;
+  esac
+}
+
+select_nvidia_driver() {
+  local gpu_info
+  gpu_info=$(LC_ALL=C lspci -nn | grep -Ei 'VGA|3D|Display' || true)
+  if grep -qi 'NVIDIA' <<< "$gpu_info"; then
+    if grep -Eqi 'GT 7[0-9][0-9]|GTX 7[0-9][0-9]|GTX 6[0-9][0-9]|Quadro [KMP]|Tesla [KMP]' <<< "$gpu_info"; then
+      echo 'nvidia-dkms'
+    else
+      echo 'nvidia-open-dkms'
+    fi
+  else
+    echo 'nvidia-open-dkms'
+  fi
+}
+
+if [[ $DRY_RUN == 1 ]]; then
+  PAC='echo pacman -S --needed --noconfirm'
+else
+  PAC='sudo pacman -S --needed --noconfirm'
+fi
 
 # ─────────────────────────────────────────────
 # 1. Система, multilib, базовые инструменты сборки
@@ -17,8 +99,97 @@ if ! grep -q '^\[multilib\]' /etc/pacman.conf; then
   sudo sed -i '/^#\[multilib\]/{s/^#//;n;s/^#//}' /etc/pacman.conf
 fi
 
-sudo pacman -Syu --noconfirm
+run sudo pacman -Syu --noconfirm
 $PAC base-devel git
+
+# GPU_MODE: auto (default), ask, amd, intel, nvidia, all, skip.
+install_gpu_drivers() {
+  local mode=${GPU_MODE:-auto} pci='' vendor selected
+  local -a detected=() vendors=() packages=()
+
+  case "$mode" in
+    auto|ask|all)
+      $PAC pciutils
+      pci=$(LC_ALL=C lspci -n)
+      while IFS= read -r vendor; do
+        case "$vendor" in
+          1002) detected+=(amd) ;;
+          8086) detected+=(intel) ;;
+          10de) detected+=(nvidia) ;;
+        esac
+      done < <(awk '$2 ~ /^03[[:xdigit:]][[:xdigit:]]:$/ {split($3, id, ":"); print tolower(id[1])}' <<< "$pci" | sort -u)
+      printf 'Detected GPU vendors: %s\n' "${detected[*]:-none supported}"
+      ;;
+    amd|intel|nvidia|skip) ;;
+    *) echo "Invalid GPU_MODE: $mode (auto, ask, amd, intel, nvidia, all, skip)" >&2; return 1 ;;
+  esac
+
+  if [[ $mode == auto ]]; then
+    if ((${#detected[@]} == 1)); then
+      mode=${detected[0]}
+    else
+      mode=ask
+    fi
+  fi
+
+  if [[ $mode == ask ]]; then
+    if [[ ! -t 0 ]]; then
+      echo 'GPU selection needs a terminal. Set GPU_MODE=amd, intel, nvidia, all or skip.' >&2
+      return 1
+    fi
+    local PS3='Select GPU drivers: '
+    local -a choices=(amd intel nvidia)
+    if ((${#detected[@]})); then choices+=(all); fi
+    choices+=(skip)
+    select selected in "${choices[@]}"; do
+      if [[ -n $selected ]]; then
+        mode=$selected
+        break
+      fi
+      echo 'Select a menu number.' >&2
+    done
+    if [[ $mode == ask ]]; then
+      echo 'GPU selection ended without a choice.' >&2
+      return 1
+    fi
+  fi
+
+  case "$mode" in
+    skip) echo 'Skipping explicit GPU driver installation.'; return 0 ;;
+    all)
+      if ((${#detected[@]} == 0)); then
+        echo 'No supported GPU vendors detected. Choose a driver explicitly or use GPU_MODE=skip.' >&2
+        return 1
+      fi
+      vendors=("${detected[@]}")
+      ;;
+    *) vendors=("$mode") ;;
+  esac
+
+  if [[ " ${vendors[*]} " == *' amd '* || " ${vendors[*]} " == *' intel '* ]]; then
+    packages+=(mesa lib32-mesa)
+  fi
+  for vendor in "${vendors[@]}"; do
+    case "$vendor" in
+      amd) packages+=(vulkan-radeon lib32-vulkan-radeon libva-mesa-driver mesa-vdpau) ;;
+      intel) packages+=(vulkan-intel lib32-vulkan-intel intel-media-driver) ;;
+      nvidia) packages+=($(select_kernel_headers) $(select_nvidia_driver) nvidia-utils lib32-nvidia-utils nvidia-settings libva-nvidia-driver) ;;
+    esac
+  done
+  printf 'GPU drivers (%s): %s\n' "${vendors[*]}" "${packages[*]}"
+  $PAC "${packages[@]}"
+
+  if [[ " ${vendors[*]} " == *' nvidia '* ]]; then
+    local config=/etc/modprobe.d/arch-install-nvidia.conf
+    if [[ ! -e $config && ! -e /etc/modprobe.d/nvidia.conf ]]; then
+      printf '%s\n' 'options nvidia_drm modeset=1' | sudo tee "$config" >/dev/null
+    fi
+    echo 'After reboot, check NVIDIA with nvidia-smi.'
+  fi
+  echo 'After reboot, check Vulkan with vulkaninfo --summary in your desktop session.'
+}
+
+install_gpu_drivers
 
 # ─────────────────────────────────────────────
 # 2. AUR-хелпер paru
@@ -62,7 +233,8 @@ paru -S --needed --noconfirm bibata-cursor-theme
 
 # Конфиг greetd: запускаем ReGreet внутри cage
 # -s  — разрешить переключение VT, -m last — только последний подключённый монитор
-sudo tee /etc/greetd/config.toml >/dev/null <<'EOF'
+backup_file /etc/greetd/config.toml
+run sudo tee /etc/greetd/config.toml >/dev/null <<'EOF'
 [terminal]
 vt = 1
 
@@ -72,14 +244,15 @@ user = "greeter"
 EOF
 
 # Обои для экрана входа (положи свой файл сюда, если хочешь фон)
-sudo install -d -m 755 /usr/share/backgrounds
+run sudo install -d -m 755 /usr/share/backgrounds
 BG_LINE=""
 if [[ -f /usr/share/backgrounds/greeter.jpg ]]; then
   BG_LINE=$'[background]\npath = "/usr/share/backgrounds/greeter.jpg"\nfit = "Cover"\n'
 fi
 
 # Конфиг ReGreet (темы можно менять — см. комментарии в конце скрипта)
-sudo tee /etc/greetd/regreet.toml >/dev/null <<EOF
+backup_file /etc/greetd/regreet.toml
+run sudo tee /etc/greetd/regreet.toml >/dev/null <<EOF
 ${BG_LINE}
 [GTK]
 application_prefer_dark_theme = true
@@ -94,12 +267,12 @@ poweroff = [ "systemctl", "poweroff" ]
 EOF
 
 # Каталоги состояния и логов ReGreet (запоминание последнего пользователя/сессии)
-sudo systemd-tmpfiles --create 2>/dev/null || true
+run sudo systemd-tmpfiles --create 2>/dev/null || true
 
 # Включаем greetd. --now не используем, чтобы не убить текущую сессию.
 # Если уже включён другой DM (sddm, gdm, ly), сначала отключи его:
 #   sudo systemctl disable sddm
-sudo systemctl enable greetd.service
+run sudo systemctl enable greetd.service
 
 # ─────────────────────────────────────────────
 # 5. Приложения и CLI-утилиты
@@ -111,7 +284,7 @@ $PAC firefox foot fish bash neovim \
   ffmpeg poppler resvg imagemagick \
   github-cli tmux lazygit obs-studio telegram-desktop qbittorrent \
   libreoffice-still okular gimp veracrypt handbrake keepassxc celluloid \
-  zerotier-one hardinfo2
+  zerotier-one hardinfo2 nwg-look
 
 # ─────────────────────────────────────────────
 # 6. Разработка
@@ -125,29 +298,13 @@ $PAC rustup rust-analyzer
 rustup default stable
 
 # Web (vscode-*-languageserver заменены на vscode-langservers-extracted)
-$PAC nodejs npm pnpm typescript typescript-language-server \
+$PAC nodejs uv npm pnpm typescript typescript-language-server \
   vscode-langservers-extracted eslint prettier
-  
-# SQL
-$PAC postgresql sqlite
-if [[ ! -f /var/lib/postgres/data/PG_VERSION ]]; then
-  sudo -iu postgres initdb --locale=C.UTF-8 --encoding=UTF8 -D /var/lib/postgres/data
-fi
-sudo systemctl enable --now postgresql
 
 # Docker
 $PAC docker docker-compose
-sudo systemctl enable --now docker
-sudo usermod -aG docker "$USER"
-
-# ─────────────────────────────────────────────
-# 7. NVIDIA
-# ─────────────────────────────────────────────
-$PAC linux-headers nvidia-open-dkms nvidia-utils lib32-nvidia-utils \
-  nvidia-settings libva-nvidia-driver
-
-# Строка "options ..." — это конфиг modprobe, а не команда shell
-echo "options nvidia_drm modeset=1" | sudo tee /etc/modprobe.d/nvidia.conf >/dev/null
+run sudo systemctl enable --now docker
+run sudo usermod -aG docker "$USER"
 
 # ─────────────────────────────────────────────
 # 8. Игры
@@ -161,18 +318,18 @@ $PAC steam lutris wine-staging winetricks wine-mono wine-gecko gamescope \
 # 9. Виртуализация (QEMU/KVM + libvirt)
 # ─────────────────────────────────────────────
 # --ask 4 автоматически соглашается заменить iptables на iptables-nft
-sudo pacman -S --needed --noconfirm --ask 4 \
+run sudo pacman -S --needed --noconfirm --ask 4 \
   qemu-full libvirt virt-manager virt-viewer \
   dnsmasq swtpm edk2-ovmf dmidecode bridge-utils iptables-nft \
   openbsd-netcat spice-vdagent
 
-sudo systemctl enable --now libvirtd.service
-sudo usermod -aG libvirt,kvm "$USER"
-sudo virsh net-autostart default
-sudo virsh net-start default || true   # уже запущена — не ошибка
+run sudo systemctl enable --now libvirtd.service
+run sudo usermod -aG libvirt,kvm "$USER"
+run sudo virsh net-autostart default
+run sudo virsh net-start default || true   # уже запущена — не ошибка
 
 # ─────────────────────────────────────────────
-# 10. AUR (в самом конце, когда все зависимости из репозиториев стоят)
+# 10. AUR
 # ─────────────────────────────────────────────
 paru -S --needed --noconfirm \
   quickshell-git gpu-screen-recorder libcava \
@@ -183,7 +340,6 @@ paru -S --needed --noconfirm \
   marktext-bin karing-bin teamspeak uxplay modrinth-app-bin
   
 # Зависимости для karing-bin
-
 $PAC libayatana-indicator
 
 # ─────────────────────────────────────────────
@@ -194,12 +350,12 @@ echo
 echo "Установка caelestia-dots и caelestia-shell"
 caelestia install
 
-sudo systemctl enable --now zerotier-one
-sudo systemctl enable --now systemd-timesyncd
-sudo systemctl enable fstrim.timer
+run sudo systemctl enable --now zerotier-one
+run sudo systemctl enable --now systemd-timesyncd
+run sudo systemctl enable fstrim.timer
 
 echo
-echo "Готово. Перезагрузись: применятся группы docker/libvirt/kvm, настройки NVIDIA и появится экран входа ReGreet."
+echo "Готово. Перезагрузись: применятся группы docker/libvirt/kvm, настройки видеодрайвера и появится экран входа ReGreet."
 
 # ─────────────────────────────────────────────
 # Где брать темы для ReGreet (GTK4 + libadwaita)
