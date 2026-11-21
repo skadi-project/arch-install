@@ -322,8 +322,10 @@ $PAC steam lutris wine-staging winetricks wine-mono wine-gecko gamescope \
 # --ask 4 автоматически соглашается заменить iptables на iptables-nft
 run sudo pacman -S --needed --noconfirm --ask 4 \
   qemu-full libvirt virt-manager virt-viewer \
-  dnsmasq swtpm edk2-ovmf dmidecode bridge-utils iptables-nft \
+  dnsmasq swtpm edk2-ovmf dmidecode iptables-nft \
   openbsd-netcat spice-vdagent
+paru -S --needed --noconfirm \
+  bridge-utils
 
 run sudo systemctl enable --now libvirtd.service
 run sudo usermod -aG libvirt,kvm "$USER"
