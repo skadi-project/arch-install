@@ -275,7 +275,7 @@ run sudo virsh net-start default || true   # уже запущена — не о
 # ─────────────────────────────────────────────
 paru -S --needed --noconfirm \
   vscodium-bin \
-  virtio-win libguestfs guestfs-tools virt-top \
+  virtio-win libguestfs guestfs-tools \
   marktext-bin karing-bin teamspeak uxplay modrinth-app-bin
   
 # Зависимости для karing-bin

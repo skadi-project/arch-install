@@ -339,7 +339,7 @@ paru -S --needed --noconfirm \
   quickshell-git gpu-screen-recorder libcava \
   vscodium-bin \
   ttf-material-symbols-variable-git ttf-rubik-vf qt6-m3shapes-git \
-  virtio-win libguestfs guestfs-tools virt-top \
+  virtio-win libguestfs guestfs-tools \
   caelestia-cli \
   marktext-bin karing-bin teamspeak uxplay modrinth-app-bin
   
