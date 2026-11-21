@@ -235,7 +235,9 @@ rustup default stable
 
 # Web (vscode-*-languageserver заменены на vscode-langservers-extracted)
 $PAC nodejs uv npm pnpm typescript typescript-language-server \
-  vscode-langservers-extracted eslint prettier
+  eslint prettier
+paru -S --needed --noconfirm \
+  vscode-langservers-extracted 
   
 # Docker
 $PAC docker docker-compose
