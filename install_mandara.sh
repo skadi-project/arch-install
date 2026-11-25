@@ -337,7 +337,8 @@ $PAC "${CORE_PAC_PACKAGES[@]}" \
   ffmpeg poppler resvg imagemagick \
   github-cli tmux lazygit obs-studio telegram-desktop qbittorrent \
   libreoffice-still okular gimp veracrypt handbrake keepassxc celluloid \
-  zerotier-one hardinfo2 nwg-look
+  zerotier-one hardinfo2 nwg-look \
+  ttf-jetbrains-mono-nerd
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 FOOT_SOURCE="$SCRIPT_DIR/mandara/foot/foot.ini"
