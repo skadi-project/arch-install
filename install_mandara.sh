@@ -185,7 +185,7 @@ resolve_application_packages() {
     case "$app" in
       brave) CORE_AUR_PACKAGES+=(brave-bin) ;;
       google-chrome) CORE_AUR_PACKAGES+=(google-chrome) ;;
-      librewolf) CORE_AUR_PACKAGES+=(librewolf-bin) ;;
+      librewolf) CORE_PAC_PACKAGES+=(librewolf) ;;
       *) CORE_PAC_PACKAGES+=("$app") ;;
     esac
   done

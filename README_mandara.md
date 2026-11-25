@@ -584,7 +584,7 @@ TEXT_EDITORS='vscodium neovim' \
 ./install_mandara.sh
 ```
 
-Все пять переменных принимают один или несколько вариантов через пробел. Например: `FILE_MANAGER='nautilus yazi'`, `BROWSER='firefox librewolf'`, `TEXT_EDITORS='helix neovim'`. При неинтерактивном запуске все пять переменных нужно задать явно. VSCodium устанавливается из AUR как `vscodium-bin`. `brave`, `google-chrome` и `librewolf` также устанавливаются из AUR; остальные выбранные приложения — из репозиториев Arch. Выбор `yazi` устанавливает терминальный файловый менеджер, а не GUI-приложение.
+Все пять переменных принимают один или несколько вариантов через пробел. Например: `FILE_MANAGER='nautilus yazi'`, `BROWSER='firefox librewolf'`, `TEXT_EDITORS='helix neovim'`. При неинтерактивном запуске все пять переменных нужно задать явно. Через AUR устанавливаются `brave` как `brave-bin`, `google-chrome` как `google-chrome` и `vscodium` как `vscodium-bin`. `librewolf` и остальные выбранные приложения устанавливаются через `pacman`. Выбор `yazi` устанавливает терминальный файловый менеджер, а не GUI-приложение.
 
 Пример с альтернативами:
 
