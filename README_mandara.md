@@ -561,12 +561,45 @@ makepkg -si --noconfirm
 cd .. && rm -rf paru
 ```
 
-### 10.4 Приложения и утилиты командной строки
+### 10.4 Выбор приложений и утилиты командной строки
+
+При обычном запуске `install_mandara.sh` перед установкой открываются выборы:
+
+| Категория | По умолчанию | Доступные варианты |
+| --- | --- | --- |
+| Файловый менеджер | `nautilus` | `thunar`, `nemo`, `pcmanfm-qt`, `yazi` |
+| Терминал | `foot` | `kitty`, `alacritty`, `wezterm`, `ghostty` |
+| Оболочка | `fish` | `bash`, `zsh`, `nushell` |
+| Браузер | `firefox` | `chromium`, `brave`, `google-chrome`, `librewolf`, `qutebrowser` |
+| Текстовые редакторы | `vscodium` и `neovim` | `helix`, `emacs`, `kate`, `gedit`, `micro`; выбрать один или оба |
+
+Enter принимает значение по умолчанию. Для автоматического запуска задайте переменные:
 
 ```bash
-sudo pacman -S --needed firefox foot fish bash neovim \
-  thunar thunar-volman thunar-archive-plugin gvfs tumbler \
-  xarchiver 7zip unzip \
+FILE_MANAGER=nautilus \
+TERMINAL=foot \
+USER_SHELL=fish \
+BROWSER=firefox \
+TEXT_EDITORS='vscodium neovim' \
+./install_mandara.sh
+```
+
+`TEXT_EDITORS` принимает один или несколько вариантов: `vscodium`, `neovim`, `helix`, `emacs`, `kate`, `gedit`, `micro`. При неинтерактивном запуске все пять переменных нужно задать явно. VSCodium устанавливается из AUR как `vscodium-bin`. `brave`, `google-chrome` и `librewolf` также устанавливаются из AUR; остальные выбранные приложения — из репозиториев Arch. Выбор `yazi` устанавливает терминальный файловый менеджер, а не GUI-приложение.
+
+Пример с альтернативами:
+
+```bash
+FILE_MANAGER=nemo TERMINAL=alacritty USER_SHELL=zsh \
+BROWSER=librewolf TEXT_EDITORS='helix neovim' \
+./install_mandara.sh
+```
+
+Конфиг Foot из `mandara/foot/foot.ini` копируется в `${XDG_CONFIG_HOME:-$HOME/.config}/foot/foot.ini`. Перед заменой существующего файла создаётся резервная копия с суффиксом `.backup.<дата-время>`.
+
+Остальные утилиты устанавливаются без выбора:
+
+```bash
+sudo pacman -S --needed 7zip unzip \
   btop nvtop ncdu inxi fastfetch \
   fd bat eza ripgrep fzf zoxide yazi jq \
   ffmpeg poppler resvg imagemagick \
@@ -574,8 +607,11 @@ sudo pacman -S --needed firefox foot fish bash neovim \
   obs-studio telegram-desktop qbittorrent \
   libreoffice-still okular gimp veracrypt handbrake keepassxc celluloid \
   zerotier-one hardinfo2
+```
 
-# Необязательно: смена оболочки вручную
+Скрипт не меняет login shell автоматически. Для ручной смены оболочки:
+
+```bash
 chsh -s /usr/bin/fish
 ```
 

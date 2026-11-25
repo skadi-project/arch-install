@@ -21,6 +21,13 @@ show_help() {
   DRY_RUN=1
   LOG_FILE=/path/to/install.log
   KERNEL_HEADERS=linux-headers
+
+  Выбор приложений:
+    FILE_MANAGER=nautilus|thunar|nemo|pcmanfm-qt|yazi (по умолчанию: nautilus)
+    TERMINAL=foot|kitty|alacritty|wezterm|ghostty     (по умолчанию: foot)
+    USER_SHELL=fish|bash|zsh|nushell                  (по умолчанию: fish)
+    BROWSER=firefox|chromium|brave|google-chrome|librewolf|qutebrowser (по умолчанию: firefox)
+    TEXT_EDITORS='vscodium neovim|helix|emacs|kate|gedit|micro' (по умолчанию: оба)
 EOF
 }
 
@@ -56,6 +63,11 @@ backup_file() {
   local file=$1
   if [[ -e $file && $DRY_RUN != 1 ]]; then  
     local backup="${file}.backup.$(date +%Y%m%d-%H%M%S)"
+    local suffix=1
+    while [[ -e $backup ]]; do
+      backup="${file}.backup.$(date +%Y%m%d-%H%M%S).${suffix}"
+      suffix=$((suffix + 1))
+    done
     sudo cp -a "$file" "$backup"
     echo "Резервная копия: $backup"
   fi
@@ -85,11 +97,135 @@ select_nvidia_driver() {
   fi
 }
 
+FILE_MANAGER_DEFAULT=nautilus
+TERMINAL_DEFAULT=foot
+USER_SHELL_DEFAULT=fish
+BROWSER_DEFAULT=firefox
+TEXT_EDITORS_DEFAULT="vscodium neovim"
+
+select_one_application() {
+  local env_name=$1 prompt=$2 default=$3 result_name=$4
+  shift 4
+  local -a choices=("$@")
+  local value=""
+
+  if [[ -v $env_name ]]; then
+    value=${!env_name}
+  elif [[ ! -t 0 ]]; then
+    printf 'Неинтерактивный запуск требует %s.\n' "$env_name" >&2
+    return 1
+  else
+    printf '%s\n' "$prompt"
+    local index=1
+    for choice in "${choices[@]}"; do
+      printf '  %d) %s\n' "$index" "$choice"
+      index=$((index + 1))
+    done
+    read -r -p "Выбор [${default}]: " value
+    value=${value:-$default}
+    if [[ $value =~ ^[0-9]+$ ]] && ((value >= 1 && value <= ${#choices[@]})); then
+      value=${choices[value - 1]}
+    fi
+  fi
+
+  local choice valid=0
+  for choice in "${choices[@]}"; do
+    if [[ $value == "$choice" ]]; then
+      valid=1
+      break
+    fi
+  done
+  if ((valid == 0)); then
+    printf 'Недопустимое значение %s=%s. Допустимо: %s.\n' "$env_name" "$value" "${choices[*]}" >&2
+    return 1
+  fi
+  printf -v "$result_name" '%s' "$value"
+}
+
+select_text_editors() {
+  local value=""
+  if [[ -v TEXT_EDITORS ]]; then
+    value=$TEXT_EDITORS
+  elif [[ ! -t 0 ]]; then
+    printf 'Неинтерактивный запуск требует TEXT_EDITORS.\n' >&2
+    return 1
+  else
+    local -a choices=(vscodium neovim helix emacs kate gedit micro)
+    printf '%s\n' 'Текстовые редакторы'
+    local index=1 choice
+    for choice in "${choices[@]}"; do
+      printf '  %d) %s\n' "$index" "$choice"
+      index=$((index + 1))
+    done
+    printf '  8) vscodium neovim\n'
+    read -r -p 'Выбор [vscodium neovim]: ' value
+    case "$value" in
+      '') value=$TEXT_EDITORS_DEFAULT ;;
+      1|2|3|4|5|6|7) value=${choices[value - 1]} ;;
+      8) value=$TEXT_EDITORS_DEFAULT ;;
+    esac
+  fi
+
+  local editor
+  local -a selected=()
+  for editor in $value; do
+    case "$editor" in
+      vscodium|neovim|helix|emacs|kate|gedit|micro) selected+=("$editor") ;;
+      *) printf 'Недопустимый редактор: %s. Допустимо: vscodium neovim helix emacs kate gedit micro.\n' "$editor" >&2; return 1 ;;
+    esac
+  done
+  if ((${#selected[@]} == 0)); then
+    printf 'TEXT_EDITORS не может быть пустым.\n' >&2
+    return 1
+  fi
+  TEXT_EDITORS="${selected[*]}"
+}
+
+select_application_choices() {
+  select_one_application FILE_MANAGER 'Файловый менеджер' "$FILE_MANAGER_DEFAULT" FILE_MANAGER nautilus thunar nemo pcmanfm-qt yazi
+  select_one_application TERMINAL 'Терминал' "$TERMINAL_DEFAULT" TERMINAL foot kitty alacritty wezterm ghostty
+  select_one_application USER_SHELL 'Оболочка' "$USER_SHELL_DEFAULT" USER_SHELL fish bash zsh nushell
+  select_one_application BROWSER 'Браузер' "$BROWSER_DEFAULT" BROWSER firefox chromium brave google-chrome librewolf qutebrowser
+  select_text_editors
+}
+
+resolve_application_packages() {
+  CORE_PAC_PACKAGES=()
+  CORE_AUR_PACKAGES=()
+  case "$FILE_MANAGER" in
+    nautilus) CORE_PAC_PACKAGES+=(nautilus gvfs file-roller) ;;
+    thunar) CORE_PAC_PACKAGES+=(thunar thunar-volman thunar-archive-plugin gvfs tumbler xarchiver) ;;
+  esac
+  case "$TERMINAL" in
+    ghostty) CORE_PAC_PACKAGES+=(ghostty) ;;
+    *) CORE_PAC_PACKAGES+=("$TERMINAL") ;;
+  esac
+  CORE_PAC_PACKAGES+=("$USER_SHELL")
+  case "$BROWSER" in
+    brave) CORE_AUR_PACKAGES+=(brave-bin) ;;
+    google-chrome) CORE_AUR_PACKAGES+=(google-chrome) ;;
+    librewolf) CORE_AUR_PACKAGES+=(librewolf-bin) ;;
+    *) CORE_PAC_PACKAGES+=("$BROWSER") ;;
+  esac
+  local editor
+  for editor in $TEXT_EDITORS; do
+    case "$editor" in
+      vscodium) CORE_AUR_PACKAGES+=(vscodium-bin) ;;
+      *) CORE_PAC_PACKAGES+=("$editor") ;;
+    esac
+  done
+}
+
 if [[ $DRY_RUN == 1 ]]; then
   PAC='echo pacman -S --needed --noconfirm'
 else
   PAC='sudo pacman -S --needed --noconfirm'
 fi
+
+select_application_choices
+resolve_application_packages
+printf 'Выбраны приложения: файловый менеджер=%s, терминал=%s, оболочка=%s, браузер=%s, редакторы=%s\n' \
+  "$FILE_MANAGER" "$TERMINAL" "$USER_SHELL" "$BROWSER" "$TEXT_EDITORS"
 
 # ─────────────────────────────────────────────
 # 1. Система, multilib, базовые инструменты сборки
@@ -213,14 +349,26 @@ fi
 # ─────────────────────────────────────────────
 # 4. Приложения и CLI-утилиты
 # ─────────────────────────────────────────────
-$PAC firefox foot fish bash neovim \
-  thunar thunar-volman thunar-archive-plugin gvfs tumbler xarchiver 7zip unzip \
+$PAC "${CORE_PAC_PACKAGES[@]}" \
+  7zip unzip \
   btop nvtop ncdu inxi fastfetch \
   fd bat eza ripgrep fzf zoxide yazi jq \
   ffmpeg poppler resvg imagemagick \
   github-cli tmux lazygit obs-studio telegram-desktop qbittorrent \
   libreoffice-still okular gimp veracrypt handbrake keepassxc celluloid \
   zerotier-one hardinfo2 nwg-look
+
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+FOOT_SOURCE="$SCRIPT_DIR/mandara/foot/foot.ini"
+FOOT_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/foot"
+FOOT_CONFIG="$FOOT_CONFIG_DIR/foot.ini"
+if [[ ! -f $FOOT_SOURCE ]]; then
+  echo "Не найден конфиг foot: $FOOT_SOURCE" >&2
+  exit 1
+fi
+run install -d -m 755 "$FOOT_CONFIG_DIR"
+backup_file "$FOOT_CONFIG"
+run install -m 644 "$FOOT_SOURCE" "$FOOT_CONFIG"
 
 # ─────────────────────────────────────────────
 # 5. Разработка
@@ -252,7 +400,6 @@ $PAC steam lutris wine-staging winetricks wine-mono wine-gecko gamescope \
   mangohud lib32-mangohud goverlay \
   mesa-utils vulkan-tools s-tui
 
-
 # ─────────────────────────────────────────────
 # 7. Виртуализация (QEMU/KVM + libvirt)
 # ─────────────────────────────────────────────
@@ -273,8 +420,10 @@ run sudo virsh net-start default || true   # уже запущена — не о
 # ─────────────────────────────────────────────
 # 8. AUR
 # ─────────────────────────────────────────────
+if ((${#CORE_AUR_PACKAGES[@]})); then
+  paru -S --needed --noconfirm "${CORE_AUR_PACKAGES[@]}"
+fi
 paru -S --needed --noconfirm \
-  vscodium-bin \
   virtio-win libguestfs guestfs-tools \
   marktext-bin karing-bin teamspeak uxplay modrinth-app-bin
   
