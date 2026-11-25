@@ -103,11 +103,11 @@ USER_SHELL_DEFAULT=fish
 BROWSER_DEFAULT=firefox
 TEXT_EDITORS_DEFAULT="vscodium neovim"
 
-select_one_application() {
+select_multiple_applications() {
   local env_name=$1 prompt=$2 default=$3 result_name=$4
   shift 4
-  local -a choices=("$@")
-  local value=""
+  local -a choices=("$@") selected=()
+  local value="" token choice index=1
 
   if [[ -v $env_name ]]; then
     value=${!env_name}
@@ -116,102 +116,83 @@ select_one_application() {
     return 1
   else
     printf '%s\n' "$prompt"
-    local index=1
     for choice in "${choices[@]}"; do
       printf '  %d) %s\n' "$index" "$choice"
       index=$((index + 1))
     done
+    printf 'Можно выбрать несколько: номера через пробел или запятую.\n'
     read -r -p "Выбор [${default}]: " value
     value=${value:-$default}
-    if [[ $value =~ ^[0-9]+$ ]] && ((value >= 1 && value <= ${#choices[@]})); then
-      value=${choices[value - 1]}
-    fi
   fi
 
-  local choice valid=0
-  for choice in "${choices[@]}"; do
-    if [[ $value == "$choice" ]]; then
-      valid=1
-      break
+  value=${value//,/ }
+  for token in $value; do
+    if [[ $token =~ ^[0-9]+$ ]]; then
+      if ((token < 1 || token > ${#choices[@]})); then
+        printf 'Недопустимый номер %s для %s.\n' "$token" "$env_name" >&2
+        return 1
+      fi
+      token=${choices[token - 1]}
     fi
-  done
-  if ((valid == 0)); then
-    printf 'Недопустимое значение %s=%s. Допустимо: %s.\n' "$env_name" "$value" "${choices[*]}" >&2
-    return 1
-  fi
-  printf -v "$result_name" '%s' "$value"
-}
-
-select_text_editors() {
-  local value=""
-  if [[ -v TEXT_EDITORS ]]; then
-    value=$TEXT_EDITORS
-  elif [[ ! -t 0 ]]; then
-    printf 'Неинтерактивный запуск требует TEXT_EDITORS.\n' >&2
-    return 1
-  else
-    local -a choices=(vscodium neovim helix emacs kate gedit micro)
-    printf '%s\n' 'Текстовые редакторы'
-    local index=1 choice
+    choice=''
     for choice in "${choices[@]}"; do
-      printf '  %d) %s\n' "$index" "$choice"
-      index=$((index + 1))
+      [[ $token == "$choice" ]] && break
     done
-    printf '  8) vscodium neovim\n'
-    read -r -p 'Выбор [vscodium neovim]: ' value
-    case "$value" in
-      '') value=$TEXT_EDITORS_DEFAULT ;;
-      1|2|3|4|5|6|7) value=${choices[value - 1]} ;;
-      8) value=$TEXT_EDITORS_DEFAULT ;;
-    esac
-  fi
-
-  local editor
-  local -a selected=()
-  for editor in $value; do
-    case "$editor" in
-      vscodium|neovim|helix|emacs|kate|gedit|micro) selected+=("$editor") ;;
-      *) printf 'Недопустимый редактор: %s. Допустимо: vscodium neovim helix emacs kate gedit micro.\n' "$editor" >&2; return 1 ;;
+    if [[ $token != "$choice" ]]; then
+      printf 'Недопустимое значение %s=%s. Допустимо: %s.\n' "$env_name" "$token" "${choices[*]}" >&2
+      return 1
+    fi
+    case " ${selected[*]} " in
+      *" $token "*) ;;
+      *) selected+=("$token") ;;
     esac
   done
   if ((${#selected[@]} == 0)); then
-    printf 'TEXT_EDITORS не может быть пустым.\n' >&2
+    printf '%s не может быть пустым.\n' "$env_name" >&2
     return 1
   fi
-  TEXT_EDITORS="${selected[*]}"
+  printf -v "$result_name" '%s' "${selected[*]}"
 }
 
 select_application_choices() {
-  select_one_application FILE_MANAGER 'Файловый менеджер' "$FILE_MANAGER_DEFAULT" FILE_MANAGER nautilus thunar nemo pcmanfm-qt yazi
-  select_one_application TERMINAL 'Терминал' "$TERMINAL_DEFAULT" TERMINAL foot kitty alacritty wezterm ghostty
-  select_one_application USER_SHELL 'Оболочка' "$USER_SHELL_DEFAULT" USER_SHELL fish bash zsh nushell
-  select_one_application BROWSER 'Браузер' "$BROWSER_DEFAULT" BROWSER firefox chromium brave google-chrome librewolf qutebrowser
-  select_text_editors
+  select_multiple_applications FILE_MANAGER 'Файловый менеджер' "$FILE_MANAGER_DEFAULT" FILE_MANAGER nautilus thunar nemo pcmanfm-qt yazi
+  select_multiple_applications TERMINAL 'Терминал' "$TERMINAL_DEFAULT" TERMINAL foot kitty alacritty wezterm ghostty
+  select_multiple_applications USER_SHELL 'Оболочка' "$USER_SHELL_DEFAULT" USER_SHELL fish bash zsh nushell
+  select_multiple_applications BROWSER 'Браузер' "$BROWSER_DEFAULT" BROWSER firefox chromium brave google-chrome librewolf qutebrowser
+  select_multiple_applications TEXT_EDITORS 'Текстовые редакторы' "$TEXT_EDITORS_DEFAULT" TEXT_EDITORS vscodium neovim helix emacs kate gedit micro
 }
 
 resolve_application_packages() {
   CORE_PAC_PACKAGES=()
   CORE_AUR_PACKAGES=()
-  case "$FILE_MANAGER" in
-    nautilus) CORE_PAC_PACKAGES+=(nautilus gvfs file-roller) ;;
-    thunar) CORE_PAC_PACKAGES+=(thunar thunar-volman thunar-archive-plugin gvfs tumbler xarchiver) ;;
-  esac
-  case "$TERMINAL" in
-    ghostty) CORE_PAC_PACKAGES+=(ghostty) ;;
-    *) CORE_PAC_PACKAGES+=("$TERMINAL") ;;
-  esac
-  CORE_PAC_PACKAGES+=("$USER_SHELL")
-  case "$BROWSER" in
-    brave) CORE_AUR_PACKAGES+=(brave-bin) ;;
-    google-chrome) CORE_AUR_PACKAGES+=(google-chrome) ;;
-    librewolf) CORE_AUR_PACKAGES+=(librewolf-bin) ;;
-    *) CORE_PAC_PACKAGES+=("$BROWSER") ;;
-  esac
-  local editor
-  for editor in $TEXT_EDITORS; do
-    case "$editor" in
+  local app
+  for app in $FILE_MANAGER; do
+    case "$app" in
+      nautilus) CORE_PAC_PACKAGES+=(nautilus gvfs file-roller) ;;
+      thunar) CORE_PAC_PACKAGES+=(thunar thunar-volman thunar-archive-plugin gvfs tumbler xarchiver) ;;
+      nemo) CORE_PAC_PACKAGES+=(nemo nemo-fileroller gvfs) ;;
+      pcmanfm-qt) CORE_PAC_PACKAGES+=(pcmanfm-qt gvfs) ;;
+      yazi) CORE_PAC_PACKAGES+=(yazi) ;;
+    esac
+  done
+  for app in $TERMINAL; do
+    CORE_PAC_PACKAGES+=("$app")
+  done
+  for app in $USER_SHELL; do
+    CORE_PAC_PACKAGES+=("$app")
+  done
+  for app in $BROWSER; do
+    case "$app" in
+      brave) CORE_AUR_PACKAGES+=(brave-bin) ;;
+      google-chrome) CORE_AUR_PACKAGES+=(google-chrome) ;;
+      librewolf) CORE_AUR_PACKAGES+=(librewolf-bin) ;;
+      *) CORE_PAC_PACKAGES+=("$app") ;;
+    esac
+  done
+  for app in $TEXT_EDITORS; do
+    case "$app" in
       vscodium) CORE_AUR_PACKAGES+=(vscodium-bin) ;;
-      *) CORE_PAC_PACKAGES+=("$editor") ;;
+      *) CORE_PAC_PACKAGES+=("$app") ;;
     esac
   done
 }

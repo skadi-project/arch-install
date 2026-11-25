@@ -571,9 +571,9 @@ cd .. && rm -rf paru
 | Терминал | `foot` | `kitty`, `alacritty`, `wezterm`, `ghostty` |
 | Оболочка | `fish` | `bash`, `zsh`, `nushell` |
 | Браузер | `firefox` | `chromium`, `brave`, `google-chrome`, `librewolf`, `qutebrowser` |
-| Текстовые редакторы | `vscodium` и `neovim` | `helix`, `emacs`, `kate`, `gedit`, `micro`; выбрать один или оба |
+| Текстовые редакторы | `vscodium` и `neovim` | `helix`, `emacs`, `kate`, `gedit`, `micro` |
 
-Enter принимает значение по умолчанию. Для автоматического запуска задайте переменные:
+Можно выбрать несколько приложений: в меню укажите номера через пробел или запятую. Например, `1 3` или `1,3`. Enter принимает значение по умолчанию. Для автоматического запуска задайте переменные со значениями через пробел:
 
 ```bash
 FILE_MANAGER=nautilus \
@@ -584,7 +584,7 @@ TEXT_EDITORS='vscodium neovim' \
 ./install_mandara.sh
 ```
 
-`TEXT_EDITORS` принимает один или несколько вариантов: `vscodium`, `neovim`, `helix`, `emacs`, `kate`, `gedit`, `micro`. При неинтерактивном запуске все пять переменных нужно задать явно. VSCodium устанавливается из AUR как `vscodium-bin`. `brave`, `google-chrome` и `librewolf` также устанавливаются из AUR; остальные выбранные приложения — из репозиториев Arch. Выбор `yazi` устанавливает терминальный файловый менеджер, а не GUI-приложение.
+Все пять переменных принимают один или несколько вариантов через пробел. Например: `FILE_MANAGER='nautilus yazi'`, `BROWSER='firefox librewolf'`, `TEXT_EDITORS='helix neovim'`. При неинтерактивном запуске все пять переменных нужно задать явно. VSCodium устанавливается из AUR как `vscodium-bin`. `brave`, `google-chrome` и `librewolf` также устанавливаются из AUR; остальные выбранные приложения — из репозиториев Arch. Выбор `yazi` устанавливает терминальный файловый менеджер, а не GUI-приложение.
 
 Пример с альтернативами:
 
