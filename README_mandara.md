@@ -594,7 +594,7 @@ BROWSER=librewolf TEXT_EDITORS='helix neovim' \
 ./install_mandara.sh
 ```
 
-Конфиг Foot из `mandara/foot/foot.ini` копируется в `${XDG_CONFIG_HOME:-$HOME/.config}/foot/foot.ini`. Перед заменой существующего файла создаётся резервная копия с суффиксом `.backup.<дата-время>`.
+Конфиги Foot, Fish и Fastfetch из `mandara/` копируется в `${XDG_CONFIG_HOME:-$HOME/.config}/`. Перед заменой существующего файла создаётся резервная копия с суффиксом `.backup.<дата-время>`.
 
 Остальные утилиты устанавливаются без выбора:
 

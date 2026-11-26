@@ -333,12 +333,17 @@ fi
 $PAC "${CORE_PAC_PACKAGES[@]}" \
   7zip unzip \
   btop nvtop ncdu inxi fastfetch \
-  fd bat eza ripgrep fzf zoxide yazi jq \
+  fd bat eza ripgrep fzf zoxide yazi jq starship \
   ffmpeg poppler resvg imagemagick \
   github-cli tmux lazygit obs-studio telegram-desktop qbittorrent \
   libreoffice-still okular gimp veracrypt handbrake keepassxc celluloid \
   zerotier-one hardinfo2 nwg-look \
   ttf-jetbrains-mono-nerd
+
+
+# ─────────────────────────────────────────────
+# Конфиги
+# ─────────────────────────────────────────────
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 FOOT_SOURCE="$SCRIPT_DIR/mandara/foot/foot.ini"
@@ -351,6 +356,28 @@ fi
 run install -d -m 755 "$FOOT_CONFIG_DIR"
 backup_file "$FOOT_CONFIG"
 run install -m 644 "$FOOT_SOURCE" "$FOOT_CONFIG"
+
+FISH_SOURCE="$SCRIPT_DIR/mandara/fish/config.fish"
+FISH_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/fish"
+FISH_CONFIG="$FISH_CONFIG_DIR/config.fish"
+if [[ ! -f $FISH_SOURCE ]]; then
+  echo "Не найден конфиг fish: $FISH_SOURCE" >&2
+  exit 1
+fi
+run install -d -m 755 "$FISH_CONFIG_DIR"
+backup_file "$FISH_CONFIG"
+run install -m 644 "$FISH_SOURCE" "$FISH_CONFIG"
+
+FASTFETCH_SOURCE="$SCRIPT_DIR/mandara/fastfetch/config.jsonc"
+FASTFETCH_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/fastfetch"
+FASTFETCH_CONFIG="$FASTFETCH_CONFIG_DIR/config.jsonc"
+if [[ ! -f $FASTFETCH_SOURCE ]]; then
+  echo "Не найден конфиг fastfetch: $FASTFETCH_SOURCE" >&2
+  exit 1
+fi
+run install -d -m 755 "$FASTFETCH_CONFIG_DIR"
+backup_file "$FASTFETCH_CONFIG"
+run install -m 644 "$FASTFETCH_SOURCE" "$FASTFETCH_CONFIG"
 
 # ─────────────────────────────────────────────
 # 5. Разработка
