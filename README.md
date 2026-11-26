@@ -17,7 +17,7 @@ chmod +x install_caelestia.sh
 ./install_caelestia.sh
 ```
 
-Подробная инструкция — [README_caelestia.md](README_caelestia.md).
+Подробная инструкция — [README_caelestia.md](README_caelestia.md). Установка рядом с Windows — [README_caelestia_dualboot.md](README_caelestia_dualboot.md).
 
 ### Mandara + Mango
 
@@ -32,7 +32,27 @@ chmod +x install_mandara.sh
 ./install_mandara.sh
 ```
 
-Подробная инструкция — [README_mandara.md](README_mandara.md).
+Подробная инструкция — [README_mandara.md](README_mandara.md). Установка рядом с Windows — [README_mandara_dualboot.md](README_mandara_dualboot.md).
+
+## Установка рядом с Windows (dual-boot)
+
+Для компьютеров, где Arch ставится рядом с уже установленной Windows, есть отдельные пошаговые инструкции для каждой оболочки. Они описывают только dual-boot и синхронизацию времени, а затем отправляют на запуск установочного скрипта.
+
+| Оболочка  | Инструкция                                                         |
+| --------- | ------------------------------------------------------------------ |
+| Caelestia | [README_caelestia_dualboot.md](README_caelestia_dualboot.md)       |
+| Mandara   | [README_mandara_dualboot.md](README_mandara_dualboot.md)           |
+
+Что в них разобрано:
+
+- режимы BIOS (MBR), UEFI и UEFI + Secure Boot, выбор сценария по размеру ESP Windows;
+- подготовка Windows: BitLocker, быстрый запуск и гибернация, освобождение места;
+- явные команды разметки (`fdisk`), форматирования и монтирования без потери данных Windows;
+- загрузчики GRUB и systemd-boot (в том числе с `sbctl` и ключами Microsoft);
+- синхронизация времени между Windows и Linux, чтобы часы не «слетали»;
+- выбор системы при загрузке, порядок загрузки и типичные неполадки.
+
+Установочные скрипты разметкой и загрузчиком не занимаются: сначала установите Arch по dual-boot инструкции, затем запустите скрипт своей оболочки.
 
 ## Выбор видеодрайвера
 
@@ -71,7 +91,10 @@ GPU_MODE=skip ./install_mandara.sh
 - [install_mandara.sh](install_mandara.sh) — установка Mandara и Mango.
 - [README_caelestia.md](README_caelestia.md) — подробная инструкция для Caelestia.
 - [README_mandara.md](README_mandara.md) — подробная инструкция для Mandara.
-- [caelestia/](caelestia/) — локальные конфигурационные файлы Caelestia; копируются в `~/.config/caelestia/` (подробности в [README_caelestia.md](README_caelestia.md)).
+- [README_caelestia_dualboot.md](README_caelestia_dualboot.md) — установка Arch рядом с Windows и синхронизация времени (Caelestia).
+- [README_mandara_dualboot.md](README_mandara_dualboot.md) — установка Arch рядом с Windows и синхронизация времени (Mandara).
+- [caelestia/](caelestia/) — локальные конфигурационные файлы Caelestia (`hypr-vars.lua`, `hypr-user.lua`); копируются в `~/.config/caelestia/` (подробности в [README_caelestia.md](README_caelestia.md)).
+- [mandara/](mandara/) — конфигурационные файлы Mandara; `mandara/foot/foot.ini` копируется в `~/.config/foot/foot.ini` (существующий файл сохраняется в резервную копию, подробности в [README_mandara.md](README_mandara.md)).
 
 ## Общие возможности
 
@@ -85,7 +108,8 @@ GPU_MODE=skip ./install_mandara.sh
 - Steam, Wine, Lutris, Gamescope и MangoHud;
 - QEMU/KVM, libvirt и virt-manager;
 - AUR-пакеты через `paru`;
-- ZeroTier, синхронизация времени и периодический TRIM.
+- инструкции по установке рядом с Windows (BIOS, UEFI, Secure Boot);
+- ZeroTier, синхронизация времени (`systemd-timesyncd`) и периодический TRIM.
 
 ## Ссылки
 
@@ -93,3 +117,4 @@ GPU_MODE=skip ./install_mandara.sh
 - [Mandara](https://github.com/theHamdiz/mandara)
 - [Hyprland](https://github.com/hyprwm/Hyprland)
 - [Arch Linux Installation Guide](https://wiki.archlinux.org/title/Installation_guide)
+- [Arch Wiki: Dual boot with Windows](https://wiki.archlinux.org/title/Dual_boot_with_Windows)
