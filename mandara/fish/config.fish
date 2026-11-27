@@ -26,13 +26,16 @@ if status is-interactive
     abbr la 'ls -a'
     abbr lla 'ls -la'
 
+    set -g fish_greeting
+
+    bind ctrl-left backward-word
+    bind ctrl-right forward-word
+    bind ctrl-backspace backward-kill-word
+    bind ctrl-delete kill-word
+
     function mark_prompt_start --on-event fish_prompt
         echo -en "\e]133;A\e\\"
     end
 
-    command -v fastfetch &> /dev/null && fastfetch \
-        --structure "os:kernel:uptime:shell:cpu:gpu:memory" \
-        --logo arch \
-        --logo-type small \
-        --separator " = "
+    command -v fastfetch &> /dev/null && fastfetch
 end
