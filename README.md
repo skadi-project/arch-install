@@ -85,7 +85,35 @@ GPU_MODE=skip ./install_mandara.sh
 
 Установщики запускаются от обычного пользователя с правами `sudo`. Подробный журнал сохраняется в `~/arch-install-<дата-время>.log`.
 
+## Решение проблем
+
+Если установка или запуск окружения прошли не так, как ожидалось, загляните в [TROUBLESHOOTING.md](TROUBLESHOOTING.md). Для dual-boot типичные неполадки (порядок загрузки, время, выбор системы) разобраны в соответствующих инструкциях выше. Подробный журнал установки находится в `~/arch-install-<дата-время>.log`, приложите его к описанию проблемы.
+
 ## Состав проекта
+
+```text
+.
+├── install_caelestia.sh          # установка Caelestia + Hyprland
+├── install_mandara.sh            # установка Mandara + Mango
+├── README.md
+├── README_caelestia.md
+├── README_caelestia_dualboot.md
+├── README_mandara.md
+├── README_mandara_dualboot.md
+├── TROUBLESHOOTING.md
+├── caelestia/
+│   ├── hypr-vars.lua
+│   └── hypr-user.lua
+├── mandara/
+│   ├── fastfetch/config.jsonc
+│   ├── fish/config.fish
+│   ├── foot/foot.ini
+│   └── mango/config.conf
+└── docs/
+    └── images/                   # изображения для документации
+```
+
+Описание:
 
 - [install_caelestia.sh](install_caelestia.sh) — установка Caelestia и Hyprland.
 - [install_mandara.sh](install_mandara.sh) — установка Mandara и Mango.
@@ -93,8 +121,10 @@ GPU_MODE=skip ./install_mandara.sh
 - [README_mandara.md](README_mandara.md) — подробная инструкция для Mandara.
 - [README_caelestia_dualboot.md](README_caelestia_dualboot.md) — установка Arch рядом с Windows и синхронизация времени (Caelestia).
 - [README_mandara_dualboot.md](README_mandara_dualboot.md) — установка Arch рядом с Windows и синхронизация времени (Mandara).
+- [TROUBLESHOOTING.md](TROUBLESHOOTING.md) — разбор типичных проблем и их решений.
 - [caelestia/](caelestia/) — локальные конфигурационные файлы Caelestia (`hypr-vars.lua`, `hypr-user.lua`); копируются в `~/.config/caelestia/` (подробности в [README_caelestia.md](README_caelestia.md)).
-- [mandara/](mandara/) — конфигурационные файлы Mandara; `mandara/foot/foot.ini` копируется в `~/.config/foot/foot.ini` (существующий файл сохраняется в резервную копию, подробности в [README_mandara.md](README_mandara.md)).
+- [mandara/](mandara/) — конфигурационные файлы Mandara: `foot/foot.ini`, `fish/config.fish`, `fastfetch/config.jsonc`, `mango/config.conf`. `mandara/foot/foot.ini` копируется в `~/.config/foot/foot.ini` (существующий файл сохраняется в резервную копию); остальные файлы и порядок их применения описаны в [README_mandara.md](README_mandara.md).
+- [docs/](docs/) — вспомогательные материалы документации (`docs/images/` со скриншотами).
 
 ## Общие возможности
 
@@ -109,7 +139,8 @@ GPU_MODE=skip ./install_mandara.sh
 - QEMU/KVM, libvirt и virt-manager;
 - AUR-пакеты через `paru`;
 - инструкции по установке рядом с Windows (BIOS, UEFI, Secure Boot);
-- ZeroTier, синхронизация времени (`systemd-timesyncd`) и периодический TRIM.
+- ZeroTier, синхронизация времени (`systemd-timesyncd`) и периодический TRIM;
+- готовые конфиги терминала foot, оболочки fish, fastfetch и compositor Mango в варианте Mandara.
 
 ## Ссылки
 

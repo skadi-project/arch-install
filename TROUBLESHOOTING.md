@@ -49,6 +49,6 @@ bind=CTRL,Print,spawn_shell,grim -g "$(slurp)" ~/Pictures/Screenshots/$(date +%F
 
 **Пример замены:**
 
-![](docs/images/mandara_troubleshutting_screenshot.png)
+![](docs/images/mandara_troubleshooting_screenshot.png)
 
 
