@@ -379,6 +379,17 @@ run install -d -m 755 "$FASTFETCH_CONFIG_DIR"
 backup_file "$FASTFETCH_CONFIG"
 run install -m 644 "$FASTFETCH_SOURCE" "$FASTFETCH_CONFIG"
 
+MANGO_SOURCE="$SCRIPT_DIR/mandara/mango/config.conf"
+MANGO_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/mango"
+MANGO_CONFIG="$MANGO_CONFIG_DIR/config.conf"
+if [[ ! -f $MANGO_SOURCE ]]; then
+  echo "Не найден конфиг mango: $MANGO_SOURCE" >&2
+  exit 1
+fi
+run install -d -m 755 "$MANGO_CONFIG_DIR"
+backup_file "$MANGO_CONFIG"
+run install -m 644 "$MANGO_SOURCE" "$MANGO_CONFIG"
+
 # ─────────────────────────────────────────────
 # 5. Разработка
 # ─────────────────────────────────────────────

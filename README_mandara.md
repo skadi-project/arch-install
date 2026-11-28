@@ -505,6 +505,8 @@ sudo systemctl enable fstrim.timer # Периодический TRIM для SSD
 | `Alt + Print`       | Снимок текущего окна          |
 | `Super + Shift + S` | Выбрать область для скриншота |
 
+Если встроенные скриншоты не работают (ошибка `invalid capture dimensions`), используйте замену на `grim` + `slurp`: см. [«Встроенные скриншоты Mandara» в TROUBLESHOOTING.md](TROUBLESHOOTING.md#1-встроенные-скриншоты-mandara).
+
 **Буфер обмена**
 
 | Комбинация          | Действие                                  |
@@ -594,7 +596,7 @@ BROWSER=librewolf TEXT_EDITORS='helix neovim' \
 ./install_mandara.sh
 ```
 
-Конфиги Foot, Fish и Fastfetch из `mandara/` копируется в `${XDG_CONFIG_HOME:-$HOME/.config}/`. Перед заменой существующего файла создаётся резервная копия с суффиксом `.backup.<дата-время>`.
+Конфиги Foot, Fish, mango и Fastfetch из `mandara/` копируется в `${XDG_CONFIG_HOME:-$HOME/.config}/`. Перед заменой существующего файла создаётся резервная копия с суффиксом `.backup.<дата-время>`.
 
 Остальные утилиты устанавливаются без выбора:
 
@@ -869,6 +871,14 @@ sudo ./cachyos-repo.sh --remove
 ```
 
 Скрипт вернёт прежний `pacman.conf`, удалит список зеркал и ключи CachyOS. Запускайте его из распакованного каталога `cachyos-repo`.
+
+## 12 Возможные проблемы и их решения
+
+Описания ошибок, которые встречаются при работе с Mandara, и способы их исправления собраны в отдельном файле: **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)**.
+
+Сейчас там описано:
+
+- [Встроенные скриншоты Mandara](TROUBLESHOOTING.md#1-встроенные-скриншоты-mandara): ошибка `screenshot: не удалось снять экран: invalid capture dimensions` и замена на `grim`, `slurp`, `wl-clipboard`, `swappy`.
 
 ## Репозитории используемых проектов
 
