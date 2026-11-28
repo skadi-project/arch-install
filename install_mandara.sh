@@ -449,9 +449,10 @@ paru -S --needed --noconfirm \
   
 # Зависимости для karing-bin
 $PAC libayatana-indicator
-
+# Зависимости для UxPlay
+$PAC avahi nss-mdns
 # Службы
-run sudo systemctl enable --now zerotier-one
+run sudo systemctl enable --now avahi-daemon.service
 run sudo systemctl enable --now systemd-timesyncd
 run sudo systemctl enable fstrim.timer
 

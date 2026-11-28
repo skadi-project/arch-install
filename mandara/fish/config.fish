@@ -7,6 +7,7 @@ if status is-interactive
 
     abbr gd 'git diff'
     abbr ga 'git add .'
+    abbr gau 'git add -u'
     abbr gc 'git commit -am'
     abbr gl 'git log'
     abbr gs 'git status'
